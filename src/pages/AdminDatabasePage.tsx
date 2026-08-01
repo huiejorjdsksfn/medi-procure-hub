@@ -867,6 +867,132 @@ ORDER BY t.table_name;`);
     }
   };
 
+  // ── Real connection diagnostics — test_connection was implemented on the
+  // bridge server the whole time (SQL Server @@VERSION + DB_NAME()),
+  // but the UI never called it, so "Connected" never told you anything
+  // more than a bare ping would. ──
+  const [bridgeDiag, setBridgeDiag] = useState<any>(null);
+  const [bridgeDiagLoading, setBridgeDiagLoading] = useState(false);
+  const testBridgeConnection = async () => {
+    setBridgeDiagLoading(true);
+    try {
+      const { data, error } = await (supabase as any).functions.invoke("mssql-bridge", { body: { action: "test_connection" } });
+      if (error) throw error;
+      if (!data?.connected) { toast({ title: "Not connected", description: data?.reason, variant: "destructive" }); setBridgeDiag(null); return; }
+      setBridgeDiag(data.data);
+    } catch (e: any) {
+      toast({ title: "Connection test failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBridgeDiagLoading(false);
+    }
+  };
+
+  // ── Live query runner against the real SQL Server (query action was
+  // also implemented server-side — read-only, SELECT-only, allow-listed —
+  // and also never wired into any UI). ──
+  const [bridgeQueryText, setBridgeQueryText] = useState("SELECT TOP 50 * FROM ");
+  const [bridgeQueryRows, setBridgeQueryRows] = useState<any[] | null>(null);
+  const [bridgeQueryRunning, setBridgeQueryRunning] = useState(false);
+  const [bridgeQueryError, setBridgeQueryError] = useState("");
+  const runBridgeQuery = async (overrideSql?: string) => {
+    const sqlText = (overrideSql ?? bridgeQueryText).trim();
+    if (!sqlText) return;
+    setBridgeQueryRunning(true);
+    setBridgeQueryError("");
+    try {
+      const { data, error } = await (supabase as any).functions.invoke("mssql-bridge", { body: { action: "query", params: { sql: sqlText } } });
+      if (error) throw error;
+      if (!data?.connected) { setBridgeQueryError(data?.reason || "Bridge not connected"); setBridgeQueryRows(null); return; }
+      if (!data.data?.ok) { setBridgeQueryError(data.data?.error || "Query failed"); setBridgeQueryRows(null); return; }
+      setBridgeQueryRows(data.data.rows || []);
+    } catch (e: any) {
+      setBridgeQueryError(e.message);
+      setBridgeQueryRows(null);
+    } finally {
+      setBridgeQueryRunning(false);
+    }
+  };
+
+  // ── Import to Supabase — the actual migration step. Previewing SQL
+  // Server tables was already possible (schema browser); there was no
+  // way to actually bring rows across. Fetches real rows through the
+  // bridge's read-only query action, then writes them into the chosen
+  // Supabase table via exec_sql_admin (admin-gated server-side — see
+  // the exec_sql_admin security fix earlier this session), batched to
+  // stay well under Postgres's parameter/statement size limits.
+  const [importTable, setImportTable] = useState<string | null>(null);
+  const [importTargetTable, setImportTargetTable] = useState("");
+  const [importPreviewRows, setImportPreviewRows] = useState<any[]>([]);
+  const [importPreviewLoading, setImportPreviewLoading] = useState(false);
+  const [importRunning, setImportRunning] = useState(false);
+  const [importProgress, setImportProgress] = useState<{done:number;total:number}|null>(null);
+  const [importResult, setImportResult] = useState<{ok:boolean;message:string}|null>(null);
+
+  const openImportPreview = async (tableName: string) => {
+    setImportTable(tableName);
+    setImportTargetTable(tableName.toLowerCase());
+    setImportPreviewRows([]);
+    setImportResult(null);
+    setImportPreviewLoading(true);
+    try {
+      const { data, error } = await (supabase as any).functions.invoke("mssql-bridge", { body: { action: "query", params: { sql: `SELECT TOP 20 * FROM [${tableName}]` } } });
+      if (error) throw error;
+      if (!data?.connected || !data.data?.ok) { toast({ title:"Preview failed", description: data?.reason || data.data?.error, variant:"destructive" }); setImportTable(null); return; }
+      setImportPreviewRows(data.data.rows || []);
+    } catch (e: any) {
+      toast({ title:"Preview failed", description:e.message, variant:"destructive" });
+      setImportTable(null);
+    } finally {
+      setImportPreviewLoading(false);
+    }
+  };
+
+  const sqlLiteral = (v: any): string => {
+    if (v === null || v === undefined) return "NULL";
+    if (typeof v === "number") return String(v);
+    if (typeof v === "boolean") return v ? "true" : "false";
+    if (v instanceof Object && "toISOString" in v) return `'${(v as Date).toISOString()}'`;
+    return `'${String(v).replace(/'/g, "''")}'`;
+  };
+
+  const runImport = async () => {
+    if (!importTable || !importTargetTable.trim()) return;
+    if (!confirm(`Import ALL rows from SQL Server "${importTable}" into Supabase table "${importTargetTable.trim()}"? This writes real data.`)) return;
+    setImportRunning(true);
+    setImportResult(null);
+    try {
+      const { data: fetchRes, error: fetchErr } = await (supabase as any).functions.invoke("mssql-bridge", { body: { action: "query", params: { sql: `SELECT * FROM [${importTable}]` } } });
+      if (fetchErr) throw fetchErr;
+      if (!fetchRes?.connected || !fetchRes.data?.ok) throw new Error(fetchRes?.reason || fetchRes.data?.error || "Fetch failed");
+      const rows: any[] = fetchRes.data.rows || [];
+      if (!rows.length) { setImportResult({ ok:true, message:"Source table is empty — nothing to import." }); return; }
+
+      const cols = Object.keys(rows[0]);
+      const target = importTargetTable.trim().replace(/[^a-zA-Z0-9_]/g, "");
+      const batchSize = 200;
+      let imported = 0;
+      setImportProgress({ done: 0, total: rows.length });
+
+      for (let i = 0; i < rows.length; i += batchSize) {
+        const batch = rows.slice(i, i + batchSize);
+        const valuesSql = batch.map(r => `(${cols.map(c => sqlLiteral(r[c])).join(",")})`).join(",\n");
+        const insertSql = `INSERT INTO public."${target}" ("${cols.join('","')}") VALUES\n${valuesSql}`;
+        const { data: insRes, error: insErr } = await (supabase as any).rpc("exec_sql_admin", { sql: insertSql });
+        if (insErr) throw insErr;
+        if (!insRes?.ok) throw new Error(insRes?.error || "Insert batch failed");
+        imported += batch.length;
+        setImportProgress({ done: imported, total: rows.length });
+      }
+      setImportResult({ ok:true, message:`Imported ${imported} row${imported===1?"":"s"} into ${target}.` });
+      toast({ title:`✓ Imported ${imported} rows`, description:`${importTable} → ${target}` });
+    } catch (e: any) {
+      setImportResult({ ok:false, message: e.message });
+    } finally {
+      setImportRunning(false);
+      setImportProgress(null);
+    }
+  };
+
   useEffect(() => {
     if (activeTab !== "mssql") return;
     loadBridgeConfig().then(() => {});
@@ -2623,10 +2749,54 @@ ORDER BY t.table_name;`);
                   style={{ padding:"7px 14px",borderRadius:5,border:`1px solid ${S.border}`,background:"#fff",fontSize:12,cursor:"pointer",opacity:!bridgeCfg?.is_enabled?0.5:1 }}>
                   ⟲ Ping now
                 </button>
+                <button onClick={testBridgeConnection} disabled={!bridgeCfg?.is_enabled || bridgeDiagLoading}
+                  style={{ padding:"7px 14px",borderRadius:5,border:`1px solid ${S.border}`,background:"#fff",fontSize:12,cursor:"pointer",opacity:!bridgeCfg?.is_enabled?0.5:1 }}>
+                  {bridgeDiagLoading ? "Testing…" : "Test Connection"}
+                </button>
                 {bridgeCfg?.last_ping_at && (
                   <span style={{ fontSize:10,color:"#999" }}>last checked {new Date(bridgeCfg.last_ping_at).toLocaleTimeString()}</span>
                 )}
               </div>
+
+              {bridgeDiag && (
+                <div style={{ marginTop:12,padding:"10px 12px",background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:6,fontSize:11.5,fontFamily:S.mono,color:"#166534",whiteSpace:"pre-wrap" }}>
+                  <div style={{ fontFamily:S.font,fontWeight:700,marginBottom:4,color:"#15803d" }}>✓ Live connection to: {bridgeDiag.db_name}</div>
+                  {bridgeDiag.version}
+                </div>
+              )}
+            </div>
+
+            {/* Live query runner — action was already implemented server-side, never had a UI */}
+            <div style={{ border:`1px solid ${S.border}`,borderRadius:8,padding:16,background:"#fff",marginBottom:16 }}>
+              <div style={{ fontSize:12,fontWeight:700,color:"#4f46e5",marginBottom:8 }}>Live Query (SQL Server, read-only)</div>
+              <textarea value={bridgeQueryText} onChange={e=>setBridgeQueryText(e.target.value)}
+                placeholder="SELECT TOP 50 * FROM YourTable"
+                style={{ width:"100%",minHeight:70,padding:"8px 10px",border:`1px solid ${S.border}`,borderRadius:6,fontSize:12,fontFamily:S.mono,resize:"vertical",boxSizing:"border-box" }} />
+              <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:8 }}>
+                <button onClick={()=>runBridgeQuery()} disabled={!bridgeCfg?.is_enabled || bridgeQueryRunning}
+                  style={{ padding:"7px 16px",borderRadius:6,border:"none",background:"#4f46e5",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",opacity:(!bridgeCfg?.is_enabled||bridgeQueryRunning)?0.5:1 }}>
+                  {bridgeQueryRunning ? "Running…" : "Run Query"}
+                </button>
+                <span style={{ fontSize:10.5,color:"#94a3b8" }}>SELECT statements only — enforced on the bridge server itself.</span>
+              </div>
+              {bridgeQueryError && <div style={{ marginTop:8,fontSize:12,color:"#dc2626" }}>{bridgeQueryError}</div>}
+              {bridgeQueryRows && (
+                <div style={{ marginTop:10,overflow:"auto",maxHeight:320,border:`1px solid ${S.border}`,borderRadius:6 }}>
+                  <div style={{ padding:"5px 10px",background:"#f8fafc",fontSize:10.5,color:"#64748b",borderBottom:`1px solid ${S.border}` }}>{bridgeQueryRows.length} row{bridgeQueryRows.length===1?"":"s"}</div>
+                  {bridgeQueryRows.length>0 && (
+                    <table style={{ borderCollapse:"collapse",width:"100%",fontSize:11.5,fontFamily:S.font }}>
+                      <thead><tr>{Object.keys(bridgeQueryRows[0]).map(k=><th key={k} style={THEAD_CELL}>{k}</th>)}</tr></thead>
+                      <tbody>
+                        {bridgeQueryRows.map((r,i)=>(
+                          <tr key={i} style={{ background:i%2===0?"#fff":"#f8fafc" }}>
+                            {Object.keys(bridgeQueryRows[0]).map(k=><td key={k} style={CELL}>{r[k]===null?<span style={{color:"#cbd5e1"}}>NULL</span>:String(r[k])}</td>)}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )}
             </div>
 
             {bridgeStatus?.connected && (
@@ -2638,7 +2808,7 @@ ORDER BY t.table_name;`);
                 {bridgeSchema && (
                   <table style={{ borderCollapse:"collapse",width:"100%",fontSize:12,fontFamily:S.font }}>
                     <thead><tr>
-                      {["Table","Columns"].map(h=>(
+                      {["Table","Columns",""].map(h=>(
                         <th key={h} style={THEAD_CELL}>{h}</th>
                       ))}
                     </tr></thead>
@@ -2647,6 +2817,12 @@ ORDER BY t.table_name;`);
                         <tr key={t.table_name} style={{ background:i%2===0?"#fff":"#f8fafc" }}>
                           <td style={{ ...CELL,fontWeight:700,color:"#4f46e5" }}>{t.table_name}</td>
                           <td style={{ ...CELL }}>{t.column_count}</td>
+                          <td style={{ ...CELL }}>
+                            <button onClick={()=>openImportPreview(t.table_name)}
+                              style={{ display:"flex",alignItems:"center",gap:4,padding:"3px 10px",border:"none",borderRadius:6,background:"#eef2ff",color:"#4f46e5",fontSize:11,fontWeight:600,cursor:"pointer" }}>
+                              <Download size={11} style={{ transform:"rotate(180deg)" }}/> Import to Supabase
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -2658,6 +2834,80 @@ ORDER BY t.table_name;`);
         )}
 
       </div>
+
+      {/* ── Import to Supabase modal ── */}
+      {importTable && (
+        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center" }}
+          onClick={e=>{ if(e.target===e.currentTarget && !importRunning) setImportTable(null); }}>
+          <div style={{ background:"#fff",borderRadius:12,width:680,maxWidth:"92vw",maxHeight:"85vh",overflow:"auto",padding:22 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14 }}>
+              <div>
+                <div style={{ fontSize:15,fontWeight:800,color:"#0f172a" }}>Import "{importTable}" to Supabase</div>
+                <div style={{ fontSize:11.5,color:"#64748b" }}>Preview of the first 20 rows from SQL Server</div>
+              </div>
+              {!importRunning && <button onClick={()=>setImportTable(null)} style={{ background:"none",border:"none",cursor:"pointer" }}><X size={16}/></button>}
+            </div>
+
+            {importPreviewLoading ? (
+              <div style={{ padding:40,textAlign:"center",color:"#94a3b8",fontSize:13 }}>Loading preview…</div>
+            ) : (
+              <>
+                <div style={{ overflow:"auto",maxHeight:260,border:`1px solid ${S.border}`,borderRadius:6,marginBottom:14 }}>
+                  {importPreviewRows.length === 0 ? (
+                    <div style={{ padding:24,textAlign:"center",color:"#94a3b8",fontSize:12 }}>Source table is empty.</div>
+                  ) : (
+                    <table style={{ borderCollapse:"collapse",width:"100%",fontSize:11 }}>
+                      <thead><tr>{Object.keys(importPreviewRows[0]).map(k=><th key={k} style={THEAD_CELL}>{k}</th>)}</tr></thead>
+                      <tbody>
+                        {importPreviewRows.map((r,i)=>(
+                          <tr key={i} style={{ background:i%2===0?"#fff":"#f8fafc" }}>
+                            {Object.keys(importPreviewRows[0]).map(k=><td key={k} style={CELL}>{r[k]===null?<span style={{color:"#cbd5e1"}}>NULL</span>:String(r[k]).slice(0,60)}</td>)}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                <label style={{ display:"block",fontSize:10.5,fontWeight:700,color:"#64748b",textTransform:"uppercase",marginBottom:4 }}>Target Supabase table</label>
+                <input value={importTargetTable} onChange={e=>setImportTargetTable(e.target.value)} disabled={importRunning}
+                  placeholder="table_name" style={{ width:"100%",padding:"8px 10px",border:`1px solid ${S.border}`,borderRadius:6,fontSize:13,fontFamily:S.mono,outline:"none",boxSizing:"border-box",marginBottom:6 }} />
+                <div style={{ fontSize:10.5,color:"#94a3b8",marginBottom:14 }}>
+                  The table must already exist in Supabase with matching column names — this brings rows across, it doesn't create schema.
+                </div>
+
+                {importProgress && (
+                  <div style={{ marginBottom:12 }}>
+                    <div style={{ height:6,background:"#e5e7eb",borderRadius:3,overflow:"hidden" }}>
+                      <div style={{ height:"100%",width:`${Math.round((importProgress.done/importProgress.total)*100)}%`,background:"#4f46e5",transition:"width .2s" }} />
+                    </div>
+                    <div style={{ fontSize:11,color:"#64748b",marginTop:4 }}>{importProgress.done} / {importProgress.total} rows</div>
+                  </div>
+                )}
+                {importResult && (
+                  <div style={{ padding:"10px 12px",borderRadius:6,marginBottom:12,fontSize:12,
+                    background: importResult.ok ? "#f0fdf4" : "#fef2f2", color: importResult.ok ? "#166534" : "#991b1b" }}>
+                    {importResult.ok ? "✓ " : "✗ "}{importResult.message}
+                  </div>
+                )}
+
+                <div style={{ display:"flex",gap:8,justifyContent:"flex-end" }}>
+                  <button onClick={()=>setImportTable(null)} disabled={importRunning}
+                    style={{ padding:"8px 16px",borderRadius:8,border:`1px solid ${S.border}`,background:"#fff",fontSize:12.5,cursor:importRunning?"not-allowed":"pointer" }}>
+                    {importResult?.ok ? "Close" : "Cancel"}
+                  </button>
+                  {!importResult?.ok && (
+                    <button onClick={runImport} disabled={importRunning || !importTargetTable.trim()}
+                      style={{ padding:"8px 20px",borderRadius:8,border:"none",background:"#4f46e5",color:"#fff",fontSize:12.5,fontWeight:600,cursor:(importRunning||!importTargetTable.trim())?"not-allowed":"pointer",opacity:(importRunning||!importTargetTable.trim())?0.6:1 }}>
+                      {importRunning ? "Importing…" : "Import All Rows"}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Minimal status footer ── */}
       <div style={{ background:SSMS.statusbar,borderTop:`1px solid ${S.border}`,color:S.fgMuted,padding:"6px 16px",display:"flex",alignItems:"center",gap:16,flexShrink:0,fontSize:11 }}>
