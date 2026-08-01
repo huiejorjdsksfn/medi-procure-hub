@@ -136,6 +136,7 @@ const MODS = [
      {l:"Settings",           p:"/settings",              I:Wrench},
      {l:"GUI Editor",         p:"/gui-editor",            I:Code2},
      {l:"Database",           p:"/admin/database",        I:Database},
+     {l:"Connectivity",       p:"/admin/connectivity",    I:Radio},
      {l:"Supabase Live Controls", p:"/admin/supabase-controls", I:Activity},
      {l:"Webmaster / Superadmin", p:"/webmaster",         I:Globe},
    ]},
@@ -226,8 +227,6 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
         /* Phone: hide ribbon & subnav — all nav in drawer */
         [data-device="phone"] .ribbon-tabs  { display:none!important; }
         [data-device="phone"] .sub-nav-bar  { display:none!important; }
-        [data-device="phone"] .admin-quick-bar { padding:2px 6px!important; }
-        [data-device="phone"] .admin-quick-bar button { padding:1px 4px!important; font-size:9px!important; }
         /* Tablet: keep ribbon but make scrollable */
         [data-device="tablet"] .ribbon-tabs { overflow-x:auto!important; -webkit-overflow-scrolling:touch!important; }
         [data-device="tablet"] .sub-nav-bar { overflow-x:auto!important; -webkit-overflow-scrolling:touch!important; }
@@ -239,9 +238,9 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       <SystemBroadcastBanner/>
 
       {/* ── TOP BAR ─────────────────────────────────────────────────── */}
-      <div style={{height:isPhone?48:44,background:T.primary,display:"flex",alignItems:"center",
-                   padding:isPhone?"0 8px":"0 14px",gap:isPhone?6:10,flexShrink:0,
-                   boxShadow:"0 2px 6px rgba(0,0,0,0.25)"}}>
+      <div style={{height:isPhone?50:52,background:`linear-gradient(180deg, ${T.primary}, ${T.primaryDark})`,display:"flex",alignItems:"center",
+                   padding:isPhone?"0 10px":"0 18px",gap:isPhone?7:12,flexShrink:0,
+                   boxShadow:"0 2px 10px rgba(8,10,35,.28)"}}>
 
         {/* Hamburger — phone + tablet */}
         {isMobile && (
@@ -250,7 +249,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
             style={{background:mobileNavOpen?"rgba(255,255,255,.2)":"transparent",border:"none",
                     cursor:"pointer",padding:"6px",display:"flex",flexDirection:"column",
                     alignItems:"center",justifyContent:"center",gap:4,flexShrink:0,
-                    borderRadius:4,minWidth:36,minHeight:36,transition:"background .15s"}}>
+                    borderRadius:8,minWidth:36,minHeight:36,transition:"background .15s"}}>
             <span style={{display:"block",width:18,height:2,background:"#fff",borderRadius:1,
                           transform:mobileNavOpen?"rotate(45deg) translate(4px,4px)":"none",
                           transition:"transform .2s"}}/>
@@ -262,83 +261,101 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
           </button>
         )}
 
-        <img src={logoImg} alt="" className="topbar-logo"
-             style={{width:isPhone?20:24,height:isPhone?20:24,borderRadius:3,
-                     objectFit:"contain",background:"rgba(255,255,255,.12)",padding:2,flexShrink:0}}/>
+        <div style={{width:isPhone?26:30,height:isPhone?26:30,borderRadius:9,background:"rgba(255,255,255,.16)",
+                     border:"1px solid rgba(255,255,255,.22)",display:"flex",alignItems:"center",justifyContent:"center",
+                     flexShrink:0}}>
+          <img src={logoImg} alt="" className="topbar-logo"
+               style={{width:isPhone?16:19,height:isPhone?16:19,objectFit:"contain"}}/>
+        </div>
 
-        <div style={{lineHeight:1,minWidth:0,flex:isPhone?"1":"none",overflow:"hidden"}}>
-          <div style={{fontSize:isPhone?10:12,fontWeight:700,color:"#fff",
+        <div style={{lineHeight:1.15,minWidth:0,flex:isPhone?"1":"none",overflow:"hidden"}}>
+          <div style={{fontSize:isPhone?11:13,fontWeight:700,color:"#fff",letterSpacing:"-.005em",
                        whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
             {isPhone ? (sysName.length>16 ? sysName.replace("EL5 ","") : sysName) : sysName}
           </div>
-          {!isPhone && <div style={{fontSize:8,color:"rgba(255,255,255,.6)",letterSpacing:".05em"}}>{hospName}</div>}
+          {!isPhone && <div style={{fontSize:9,color:"rgba(255,255,255,.55)",letterSpacing:".04em",marginTop:1}}>{hospName}</div>}
         </div>
 
-        {!isPhone && <div style={{marginLeft:10}}><FacilitySwitcher/></div>}
-        {!isPhone && <div style={{marginLeft:12,flex:1}}><GlobalSearchBar /></div>}
+        {!isPhone && <div style={{marginLeft:8}}><FacilitySwitcher/></div>}
+        {!isPhone && <div style={{marginLeft:14,flex:1,maxWidth:440}}><GlobalSearchBar /></div>}
         {isPhone && <div style={{flex:1}}/>}
-        {!isPhone && <div style={{marginRight:6}}><SystemHealthWidget /></div>}
+        {!isPhone && <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+          <SystemHealthWidget />
 
-        {totalAlerts>0 && (
-          <div style={{padding:"2px 8px",borderRadius:T.r,background:"rgba(255,255,255,.15)",
-                       border:"1px solid rgba(255,255,255,.25)",fontSize:isPhone?9:11,
-                       fontWeight:700,color:"#fff",flexShrink:0,whiteSpace:"nowrap"}}>
-            {totalAlerts}{isPhone?" ⚠":" pending"}
-          </div>
-        )}
-
-        {!isPhone && (
-          <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"rgba(255,255,255,.65)"}}>
-            <span style={{width:6,height:6,borderRadius:"50%",background:"#00e676",
-                          display:"inline-block",animation:"livePulse 2s infinite"}}/>Live
-          </div>
-        )}
-
-        {/* Notification bell */}
-        <div style={{position:"relative"}}>
-          <button onClick={()=>setNotifOpen(p=>!p)}
-            style={{padding:"4px 6px",background:notifOpen?"rgba(255,255,255,.15)":"transparent",
-                    border:"none",cursor:"pointer",color:"rgba(255,255,255,.85)",borderRadius:T.r,
-                    display:"flex",alignItems:"center",position:"relative",minWidth:32,minHeight:32}}
-            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.15)")}
-            onMouseLeave={e=>(e.currentTarget.style.background=notifOpen?"rgba(255,255,255,.15)":"transparent")}>
-            <Bell size={15}/>
-            {(cnt.notifications||0)>0 && (
-              <span style={{position:"absolute",top:1,right:1,width:7,height:7,
-                            borderRadius:"50%",background:"#ff5252"}}/>
-            )}
-          </button>
-          {notifOpen && (
-            <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:300}}>
-              <NotificationPopup onClose={()=>setNotifOpen(false)}/>
+          {totalAlerts>0 && (
+            <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 11px",borderRadius:99,background:"rgba(255,255,255,.14)",
+                         border:"1px solid rgba(255,255,255,.22)",fontSize:11,
+                         fontWeight:700,color:"#fff",flexShrink:0,whiteSpace:"nowrap"}}>
+              <span style={{width:5,height:5,borderRadius:"50%",background:"#fbbf24",flexShrink:0}}/>
+              {totalAlerts} pending
             </div>
           )}
-        </div>
 
-        {!isPhone && (
-          <div style={{padding:"2px 10px",borderRadius:T.r,background:"rgba(255,255,255,.12)",
-                       fontSize:10,fontWeight:600,color:"rgba(255,255,255,.9)"}}>
-            {primaryRole?.replace(/_/g," ")||"Staff"}
+          <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10.5,color:"rgba(255,255,255,.6)",fontWeight:600}}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:"#4ade80",
+                          display:"inline-block",animation:"livePulse 2s infinite"}}/>Live
+          </div>
+        </div>}
+        {isPhone && totalAlerts>0 && (
+          <div style={{padding:"3px 8px",borderRadius:99,background:"rgba(255,255,255,.15)",
+                       border:"1px solid rgba(255,255,255,.22)",fontSize:9,
+                       fontWeight:700,color:"#fff",flexShrink:0,whiteSpace:"nowrap"}}>
+            {totalAlerts} ⚠
           </div>
         )}
 
-        <button onClick={()=>nav("/profile")}
-          style={{background:"transparent",border:"none",cursor:"pointer",padding:0,borderRadius:"50%",flexShrink:0}}>
-          {profile?.avatar_url
-            ? <img src={profile.avatar_url} alt="" style={{width:isPhone?24:26,height:isPhone?24:26,borderRadius:"50%",objectFit:"cover"}}/>
-            : <div style={{width:isPhone?24:26,height:isPhone?24:26,borderRadius:"50%",background:"rgba(255,255,255,.18)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <UserCircle size={isPhone?14:16} color="#fff"/>
-              </div>}
-        </button>
+        {/* ── User cluster: notifications · role · avatar · sign out ── */}
+        <div style={{display:"flex",alignItems:"center",gap:isPhone?4:6,flexShrink:0,
+                     paddingLeft:isPhone?0:8,marginLeft:isPhone?0:2,
+                     borderLeft:isPhone?"none":"1px solid rgba(255,255,255,.14)"}}>
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setNotifOpen(p=>!p)}
+              style={{padding:"6px",background:notifOpen?"rgba(255,255,255,.18)":"transparent",
+                      border:"none",cursor:"pointer",color:"rgba(255,255,255,.9)",borderRadius:8,
+                      display:"flex",alignItems:"center",position:"relative",minWidth:32,minHeight:32,transition:"background .12s"}}
+              onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.18)")}
+              onMouseLeave={e=>(e.currentTarget.style.background=notifOpen?"rgba(255,255,255,.18)":"transparent")}>
+              <Bell size={15}/>
+              {(cnt.notifications||0)>0 && (
+                <span style={{position:"absolute",top:5,right:6,width:7,height:7,
+                              borderRadius:"50%",background:"#f87171",border:`1.5px solid ${T.primaryDark}`}}/>
+              )}
+            </button>
+            {notifOpen && (
+              <div style={{position:"absolute",top:"calc(100% + 8px)",right:0,zIndex:300}}>
+                <NotificationPopup onClose={()=>setNotifOpen(false)}/>
+              </div>
+            )}
+          </div>
 
-        <button onClick={()=>{signOut();nav("/login");}} title="Sign out"
-          style={{padding:"4px 6px",background:"transparent",border:"none",cursor:"pointer",
-                  color:"rgba(255,255,255,.7)",borderRadius:T.r,display:"flex",alignItems:"center",
-                  minWidth:30,minHeight:30}}
-          onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.12)")}
-          onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-          <LogOut size={14}/>
-        </button>
+          {!isPhone && (
+            <div style={{padding:"4px 11px",borderRadius:99,background:"rgba(255,255,255,.1)",
+                         fontSize:10.5,fontWeight:600,color:"rgba(255,255,255,.85)",whiteSpace:"nowrap"}}>
+              {primaryRole?.replace(/_/g," ")||"Staff"}
+            </div>
+          )}
+
+          <button onClick={()=>nav("/profile")}
+            style={{background:"transparent",border:"none",cursor:"pointer",padding:1,borderRadius:"50%",flexShrink:0,
+                    display:"flex",boxShadow:"0 0 0 1.5px rgba(255,255,255,.3)",transition:"box-shadow .12s"}}
+            onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 0 0 1.5px rgba(255,255,255,.6)")}
+            onMouseLeave={e=>(e.currentTarget.style.boxShadow="0 0 0 1.5px rgba(255,255,255,.3)")}>
+            {profile?.avatar_url
+              ? <img src={profile.avatar_url} alt="" style={{width:isPhone?24:27,height:isPhone?24:27,borderRadius:"50%",objectFit:"cover"}}/>
+              : <div style={{width:isPhone?24:27,height:isPhone?24:27,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <UserCircle size={isPhone?14:16} color="#fff"/>
+                </div>}
+          </button>
+
+          <button onClick={()=>{signOut();nav("/login");}} title="Sign out"
+            style={{padding:"6px",background:"transparent",border:"none",cursor:"pointer",
+                    color:"rgba(255,255,255,.75)",borderRadius:8,display:"flex",alignItems:"center",
+                    minWidth:32,minHeight:32,transition:"background .12s"}}
+            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.14)")}
+            onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
+            <LogOut size={14}/>
+          </button>
+        </div>
       </div>
 
       {/* ── D365 RIBBON (module tabs) — hidden on phone ───────────── */}
@@ -520,29 +537,6 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
                 )}
               </div>
             ))}
-
-            {/* Admin quick links in drawer */}
-            {(isAdmin||isDbAdmin) && (
-              <div style={{marginTop:"auto",borderTop:"1px solid rgba(255,255,255,.15)",padding:"8px 12px"}}>
-                <div style={{fontSize:9,fontWeight:800,color:"rgba(255,255,255,.45)",
-                             letterSpacing:".1em",marginBottom:4}}>ADMIN</div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-                  {[
-                    {l:"Panel",p:"/admin/panel"},{l:"Users",p:"/users"},
-                    {l:"Security",p:"/admin/users-ip-audit"},{l:"Settings",p:"/settings"},
-                    {l:"Database",p:"/admin/database"},{l:"Webmaster",p:"/webmaster"},
-                    {l:"Connectivity",p:"/admin/connectivity"},
-                  ].map(a=>(
-                    <button key={a.p} onClick={()=>{nav(a.p);setMobileNavOpen(false);}}
-                      style={{padding:"3px 8px",borderRadius:T.r,
-                              background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.2)",
-                              color:"#fff",fontSize:10,cursor:"pointer",whiteSpace:"nowrap"}}>
-                      {a.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </>
       )}
