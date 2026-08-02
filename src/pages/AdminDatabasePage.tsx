@@ -23,6 +23,7 @@ import * as XLSX from "@e965/xlsx";
 import { AreaChart, Area, LineChart, Line, BarChart, Bar, Cell, ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import RoleGuard from "@/components/RoleGuard";
 import { printDataTable } from "@/lib/printDocument";
+import { T } from "@/lib/theme";
 
 // - Table groups with all 57 tables -
 const TABLE_GROUPS = [
@@ -43,6 +44,11 @@ const TABLE_GROUPS = [
 ];
 
 // - Styles (Clean white Inter design - v5.8) -
+// Colours below are now getters deriving from T (the central,
+// GUI-Editor-driven theme) — same theme-sync fix already applied to
+// erpTheme.ts, Document Studio, and the finance dashboards. Neutrals
+// (bg/border/mono font/radius/shadow) are left as literals since
+// they were already a solid, theme-agnostic set.
 const S = {
   font:  "'Inter', system-ui, -apple-system, sans-serif",
   bg:    "#ffffff",
@@ -53,14 +59,14 @@ const S = {
   border:"#e4e4e7",
   borderLight: "#f4f4f4",
   head:  "#fafafa",
-  blue:  "#6366f1",
-  sel:   "rgba(99,102,241,0.08)",
-  err:   "#ef4444",
-  errBg: "#fef2f2",
-  ok:    "#22c55e",
-  okBg:  "#f0fdf4",
-  warn:  "#f59e0b",
-  warnBg:"#fffbeb",
+  get blue()  { return T.primary; },
+  get sel()   { return T.primaryBg; },
+  get err()   { return T.error; },
+  get errBg() { return T.errorBg; },
+  get ok()    { return T.success; },
+  get okBg()  { return T.successBg; },
+  get warn()  { return T.warning; },
+  get warnBg(){ return T.warningBg; },
   mono:  "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace",
   radius: 8,
   radiusLg: 12,
@@ -75,6 +81,9 @@ const S = {
 // rounded cards with subtle shadows, indigo accent, minimal footer.
 // Variable kept as `SSMS` (not renamed) to avoid touching every call site
 // across this large file — only the values changed, not the shape.
+// accent/accentDk/accentBg now derive from T too (were hardcoded here
+// even after the v7.0 pass, so GUI Editor colour changes never reached
+// this file).
 const SSMS = {
   font:      S.font,
   titlebar:  "#ffffff",
@@ -82,9 +91,9 @@ const SSMS = {
   menubar:   "#ffffff",
   toolbar:   "#ffffff",
   toolbarBd: S.border,
-  accent:    "#6366f1",
-  accentDk:  "#4f46e5",
-  accentBg:  "#eef2ff",
+  get accent()   { return T.primary; },
+  get accentDk() { return T.primaryDark; },
+  get accentBg() { return T.primaryBg; },
   tabActive: "#18181b",
   tabInactive: "transparent",
   tabBorder: S.border,
