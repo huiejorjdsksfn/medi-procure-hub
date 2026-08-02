@@ -55,7 +55,7 @@ const S = {
   page:{background:T.bg,minHeight:"100%",fontFamily:"'Segoe UI','Inter',system-ui,sans-serif"} as React.CSSProperties,
   hdr:{background:"#1e1e2e",padding:"0 24px",display:"flex",alignItems:"stretch",minHeight:44,boxShadow:"0 2px 6px rgba(0,0,0,.4)"} as React.CSSProperties,
   bc:{background:"#fff",padding:"7px 24px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:6,fontSize:12,color:T.fgMuted} as React.CSSProperties,
-  card:{background:"#fff",border:`1px solid ${T.border}`,borderRadius:T.rLg,boxShadow:"0 1px 4px rgba(0,0,0,.06)",overflow:"hidden"} as React.CSSProperties,
+  card:{background:"#fff",border:`1px solid ${T.border}`,borderRadius:T.rLg,boxShadow:"0 1px 4px rgba(0,0,0,.06)",overflow:"hidden",transition:"box-shadow .15s ease"} as React.CSSProperties,
   inp:{border:`1px solid ${T.border}`,borderRadius:T.r,padding:"7px 11px",fontSize:13,outline:"none",background:"#fff",color:T.fg,fontFamily:"inherit",width:"100%",boxSizing:"border-box"as const} as React.CSSProperties,
   th:{padding:"8px 12px",textAlign:"left"as const,fontSize:10,fontWeight:700,color:T.fgDim,borderBottom:`1px solid ${T.border}`,background:T.bg,whiteSpace:"nowrap"as const},
   td:{padding:"7px 12px",fontSize:11,color:T.fg,borderBottom:`1px solid ${T.border}18`},
@@ -235,8 +235,10 @@ export default function PrintEnginePage() {
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,padding:"0 8px"}}>
-          <button onClick={()=>nav("/reports")} style={{background:"rgba(255,255,255,.12)",border:"none",borderRadius:6,padding:"5px 12px",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:5}}><BarChart3 size={13}/>Reports</button>
-          <button onClick={()=>nav("/dashboard")} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"5px 12px",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Dashboard</button>
+          <button onClick={()=>nav("/reports")} style={{background:"rgba(255,255,255,.12)",border:"none",borderRadius:6,padding:"5px 12px",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:5,transition:"background .12s ease"}}
+            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.22)")} onMouseLeave={e=>(e.currentTarget.style.background="rgba(255,255,255,.12)")}><BarChart3 size={13}/>Reports</button>
+          <button onClick={()=>nav("/dashboard")} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"5px 12px",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit",transition:"background .12s ease"}}
+            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.18)")} onMouseLeave={e=>(e.currentTarget.style.background="rgba(255,255,255,.08)")}>Dashboard</button>
         </div>
       </div>
       <div style={S.bc}>
@@ -245,7 +247,7 @@ export default function PrintEnginePage() {
       </div>
 
       {/* D365-style app switcher — three real sub-apps in one shell */}
-      <div style={{display:"flex",gap:2,padding:"0 24px",background:"#fff",borderBottom:`1px solid ${T.border}`}}>
+      <div style={{display:"flex",gap:2,padding:"0 24px",background:"#fff",borderBottom:`1px solid ${T.border}`,boxShadow:"0 1px 3px rgba(16,24,40,.04)"}}>
         {[
           {id:"builder" as const,  label:"Report Builder",   icon:LayoutGrid},
           {id:"schedules" as const,label:"Scheduled Reports", icon:Clock},
@@ -256,8 +258,10 @@ export default function PrintEnginePage() {
             <button key={a.id} onClick={()=>setApp(a.id)} style={{
               display:"flex",alignItems:"center",gap:6,padding:"10px 16px",background:"transparent",border:"none",
               borderBottom:active?`2px solid ${T.primary}`:"2px solid transparent",cursor:"pointer",
-              color:active?T.primary:T.fgMuted,fontSize:12.5,fontWeight:active?700:500,fontFamily:"inherit",
-            }}>
+              color:active?T.primary:T.fgMuted,fontSize:12.5,fontWeight:active?700:500,fontFamily:"inherit",transition:"background .12s ease, color .12s ease",
+            }}
+            onMouseEnter={e=>{ if(!active) e.currentTarget.style.background=T.bg; }}
+            onMouseLeave={e=>{ if(!active) e.currentTarget.style.background="transparent"; }}>
               <Icon size={14}/>{a.label}
             </button>
           );

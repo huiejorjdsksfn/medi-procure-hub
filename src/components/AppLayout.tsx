@@ -136,6 +136,7 @@ const MODS = [
      {l:"Settings",           p:"/settings",              I:Wrench},
      {l:"GUI Editor",         p:"/gui-editor",            I:Code2},
      {l:"Database",           p:"/admin/database",        I:Database},
+     {l:"Connectivity",       p:"/admin/connectivity",    I:Radio},
      {l:"Supabase Live Controls", p:"/admin/supabase-controls", I:Activity},
      {l:"Webmaster / Superadmin", p:"/webmaster",         I:Globe},
    ]},
@@ -226,8 +227,6 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
         /* Phone: hide ribbon & subnav — all nav in drawer */
         [data-device="phone"] .ribbon-tabs  { display:none!important; }
         [data-device="phone"] .sub-nav-bar  { display:none!important; }
-        [data-device="phone"] .admin-quick-bar { padding:2px 6px!important; }
-        [data-device="phone"] .admin-quick-bar button { padding:1px 4px!important; font-size:9px!important; }
         /* Tablet: keep ribbon but make scrollable */
         [data-device="tablet"] .ribbon-tabs { overflow-x:auto!important; -webkit-overflow-scrolling:touch!important; }
         [data-device="tablet"] .sub-nav-bar { overflow-x:auto!important; -webkit-overflow-scrolling:touch!important; }
@@ -239,9 +238,9 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       <SystemBroadcastBanner/>
 
       {/* ── TOP BAR ─────────────────────────────────────────────────── */}
-      <div style={{height:isPhone?48:44,background:T.primary,display:"flex",alignItems:"center",
-                   padding:isPhone?"0 8px":"0 14px",gap:isPhone?6:10,flexShrink:0,
-                   boxShadow:"0 2px 6px rgba(0,0,0,0.25)"}}>
+      <div style={{height:isPhone?50:52,background:`linear-gradient(180deg, ${T.primary}, ${T.primaryDark})`,display:"flex",alignItems:"center",
+                   padding:isPhone?"0 10px":"0 18px",gap:isPhone?7:12,flexShrink:0,
+                   boxShadow:"0 2px 10px rgba(8,10,35,.28)"}}>
 
         {/* Hamburger — phone + tablet */}
         {isMobile && (
@@ -250,7 +249,7 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
             style={{background:mobileNavOpen?"rgba(255,255,255,.2)":"transparent",border:"none",
                     cursor:"pointer",padding:"6px",display:"flex",flexDirection:"column",
                     alignItems:"center",justifyContent:"center",gap:4,flexShrink:0,
-                    borderRadius:4,minWidth:36,minHeight:36,transition:"background .15s"}}>
+                    borderRadius:8,minWidth:36,minHeight:36,transition:"background .15s"}}>
             <span style={{display:"block",width:18,height:2,background:"#fff",borderRadius:1,
                           transform:mobileNavOpen?"rotate(45deg) translate(4px,4px)":"none",
                           transition:"transform .2s"}}/>
@@ -262,144 +261,116 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
           </button>
         )}
 
-        <img src={logoImg} alt="" className="topbar-logo"
-             style={{width:isPhone?20:24,height:isPhone?20:24,borderRadius:3,
-                     objectFit:"contain",background:"rgba(255,255,255,.12)",padding:2,flexShrink:0}}/>
+        <div style={{width:isPhone?26:30,height:isPhone?26:30,borderRadius:9,background:"rgba(255,255,255,.16)",
+                     border:"1px solid rgba(255,255,255,.22)",display:"flex",alignItems:"center",justifyContent:"center",
+                     flexShrink:0}}>
+          <img src={logoImg} alt="" className="topbar-logo"
+               style={{width:isPhone?16:19,height:isPhone?16:19,objectFit:"contain"}}/>
+        </div>
 
-        <div style={{lineHeight:1,minWidth:0,flex:isPhone?"1":"none",overflow:"hidden"}}>
-          <div style={{fontSize:isPhone?10:12,fontWeight:700,color:"#fff",
+        <div style={{lineHeight:1.15,minWidth:0,flex:isPhone?"1":"none",overflow:"hidden"}}>
+          <div style={{fontSize:isPhone?11:13,fontWeight:700,color:"#fff",letterSpacing:"-.005em",
                        whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
             {isPhone ? (sysName.length>16 ? sysName.replace("EL5 ","") : sysName) : sysName}
           </div>
-          {!isPhone && <div style={{fontSize:8,color:"rgba(255,255,255,.6)",letterSpacing:".05em"}}>{hospName}</div>}
+          {!isPhone && <div style={{fontSize:9,color:"rgba(255,255,255,.55)",letterSpacing:".04em",marginTop:1}}>{hospName}</div>}
         </div>
 
-        {!isPhone && <div style={{marginLeft:10}}><FacilitySwitcher/></div>}
-        {!isPhone && <div style={{marginLeft:12,flex:1}}><GlobalSearchBar /></div>}
+        {!isPhone && <div style={{marginLeft:8}}><FacilitySwitcher/></div>}
+        {!isPhone && <div style={{marginLeft:14,flex:1,maxWidth:440}}><GlobalSearchBar /></div>}
         {isPhone && <div style={{flex:1}}/>}
-        {!isPhone && <div style={{marginRight:6}}><SystemHealthWidget /></div>}
+        {!isPhone && <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}>
+          <SystemHealthWidget />
 
-        {totalAlerts>0 && (
-          <div style={{padding:"2px 8px",borderRadius:T.r,background:"rgba(255,255,255,.15)",
-                       border:"1px solid rgba(255,255,255,.25)",fontSize:isPhone?9:11,
-                       fontWeight:700,color:"#fff",flexShrink:0,whiteSpace:"nowrap"}}>
-            {totalAlerts}{isPhone?" ⚠":" pending"}
-          </div>
-        )}
-
-        {!isPhone && (
-          <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"rgba(255,255,255,.65)"}}>
-            <span style={{width:6,height:6,borderRadius:"50%",background:"#00e676",
-                          display:"inline-block",animation:"livePulse 2s infinite"}}/>Live
-          </div>
-        )}
-
-        {/* Notification bell */}
-        <div style={{position:"relative"}}>
-          <button onClick={()=>setNotifOpen(p=>!p)}
-            style={{padding:"4px 6px",background:notifOpen?"rgba(255,255,255,.15)":"transparent",
-                    border:"none",cursor:"pointer",color:"rgba(255,255,255,.85)",borderRadius:T.r,
-                    display:"flex",alignItems:"center",position:"relative",minWidth:32,minHeight:32}}
-            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.15)")}
-            onMouseLeave={e=>(e.currentTarget.style.background=notifOpen?"rgba(255,255,255,.15)":"transparent")}>
-            <Bell size={15}/>
-            {(cnt.notifications||0)>0 && (
-              <span style={{position:"absolute",top:1,right:1,width:7,height:7,
-                            borderRadius:"50%",background:"#ff5252"}}/>
-            )}
-          </button>
-          {notifOpen && (
-            <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,zIndex:300}}>
-              <NotificationPopup onClose={()=>setNotifOpen(false)}/>
+          {totalAlerts>0 && (
+            <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 11px",borderRadius:99,background:"rgba(255,255,255,.14)",
+                         border:"1px solid rgba(255,255,255,.22)",fontSize:11,
+                         fontWeight:700,color:"#fff",flexShrink:0,whiteSpace:"nowrap"}}>
+              <span style={{width:5,height:5,borderRadius:"50%",background:"#fbbf24",flexShrink:0}}/>
+              {totalAlerts} pending
             </div>
           )}
-        </div>
 
-        {!isPhone && (
-          <div style={{padding:"2px 10px",borderRadius:T.r,background:"rgba(255,255,255,.12)",
-                       fontSize:10,fontWeight:600,color:"rgba(255,255,255,.9)"}}>
-            {primaryRole?.replace(/_/g," ")||"Staff"}
+          <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10.5,color:"rgba(255,255,255,.6)",fontWeight:600}}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:"#4ade80",
+                          display:"inline-block",animation:"livePulse 2s infinite"}}/>Live
+          </div>
+        </div>}
+        {isPhone && totalAlerts>0 && (
+          <div style={{padding:"3px 8px",borderRadius:99,background:"rgba(255,255,255,.15)",
+                       border:"1px solid rgba(255,255,255,.22)",fontSize:9,
+                       fontWeight:700,color:"#fff",flexShrink:0,whiteSpace:"nowrap"}}>
+            {totalAlerts} ⚠
           </div>
         )}
 
-        <button onClick={()=>nav("/profile")}
-          style={{background:"transparent",border:"none",cursor:"pointer",padding:0,borderRadius:"50%",flexShrink:0}}>
-          {profile?.avatar_url
-            ? <img src={profile.avatar_url} alt="" style={{width:isPhone?24:26,height:isPhone?24:26,borderRadius:"50%",objectFit:"cover"}}/>
-            : <div style={{width:isPhone?24:26,height:isPhone?24:26,borderRadius:"50%",background:"rgba(255,255,255,.18)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <UserCircle size={isPhone?14:16} color="#fff"/>
-              </div>}
-        </button>
+        {/* ── User cluster: notifications · role · avatar · sign out ── */}
+        <div style={{display:"flex",alignItems:"center",gap:isPhone?4:6,flexShrink:0,
+                     paddingLeft:isPhone?0:8,marginLeft:isPhone?0:2,
+                     borderLeft:isPhone?"none":"1px solid rgba(255,255,255,.14)"}}>
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setNotifOpen(p=>!p)}
+              style={{padding:"6px",background:notifOpen?"rgba(255,255,255,.18)":"transparent",
+                      border:"none",cursor:"pointer",color:"rgba(255,255,255,.9)",borderRadius:8,
+                      display:"flex",alignItems:"center",position:"relative",minWidth:32,minHeight:32,transition:"background .12s"}}
+              onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.18)")}
+              onMouseLeave={e=>(e.currentTarget.style.background=notifOpen?"rgba(255,255,255,.18)":"transparent")}>
+              <Bell size={15}/>
+              {(cnt.notifications||0)>0 && (
+                <span style={{position:"absolute",top:5,right:6,width:7,height:7,
+                              borderRadius:"50%",background:"#f87171",border:`1.5px solid ${T.primaryDark}`}}/>
+              )}
+            </button>
+            {notifOpen && (
+              <div style={{position:"absolute",top:"calc(100% + 8px)",right:0,zIndex:300}}>
+                <NotificationPopup onClose={()=>setNotifOpen(false)}/>
+              </div>
+            )}
+          </div>
 
-        <button onClick={()=>{signOut();nav("/login");}} title="Sign out"
-          style={{padding:"4px 6px",background:"transparent",border:"none",cursor:"pointer",
-                  color:"rgba(255,255,255,.7)",borderRadius:T.r,display:"flex",alignItems:"center",
-                  minWidth:30,minHeight:30}}
-          onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.12)")}
-          onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
-          <LogOut size={14}/>
-        </button>
-      </div>
-
-      {/* ── ADMIN QUICK BAR ──────────────────────────────────────────── */}
-      {(isAdmin||isDbAdmin) && (
-        <div className="admin-quick-bar"
-             style={{background:"#1c2229",borderBottom:`2px solid ${T.accent}`,padding:"4px 14px",display:"flex",gap:5,
-                     alignItems:"center",flexShrink:0,overflowX:"auto",
-                     WebkitOverflowScrolling:"touch" as any}}>
-          <span style={{fontSize:9.5,fontWeight:800,color:T.accent,marginRight:5,letterSpacing:"0.06em",
-                        whiteSpace:"nowrap",flexShrink:0,textTransform:"uppercase"}}>Admin</span>
-          {[
-            [
-              {l:"Panel",  p:"/admin/panel", I:Layers},
-            ],
-            [
-              {l:"Users",   p:"/users",                 I:Users},
-              {l:"+ User",  p:"/admin/create-user",     I:UserPlus},
-              {l:"Security Center",p:"/admin/users-ip-audit",  I:Shield},
-              {l:"Audit Log",p:"/audit-log",     I:ClipboardList},
-            ],
-            [
-              {l:"Settings",  p:"/settings",       I:Settings},
-              {l:"GUI Editor",p:"/gui-editor",     I:Palette},
-              {l:"Database",  p:"/admin/database", I:Database},
-            ],
-            [
-              {l:"Webmaster / Superadmin", p:"/webmaster",  I:Code2},
-            ],
-          ].map((group,gi)=>(
-            <div key={gi} style={{display:"flex",gap:5,alignItems:"center",flexShrink:0,
-                                   paddingLeft:gi>0?6:0,borderLeft:gi>0?"1px solid rgba(255,255,255,.1)":"none"}}>
-              {group.map(a=>(
-                <button key={a.p} onClick={()=>nav(a.p)}
-                  style={{display:"flex",alignItems:"center",gap:4,padding:"3px 9px",borderRadius:T.r,
-                          background:loc.pathname===a.p?T.accent:"rgba(255,255,255,.06)",
-                          border:"1px solid transparent",
-                          color:loc.pathname===a.p?"#fff":"rgba(255,255,255,.7)",fontSize:10.5,fontWeight:loc.pathname===a.p?700:500,
-                          cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"background .12s,color .12s"}}
-                  onMouseEnter={e=>{if(loc.pathname!==a.p){(e.currentTarget as any).style.background="rgba(255,255,255,.14)";(e.currentTarget as any).style.color="#fff";}}}
-                  onMouseLeave={e=>{if(loc.pathname!==a.p){(e.currentTarget as any).style.background="rgba(255,255,255,.06)";(e.currentTarget as any).style.color="rgba(255,255,255,.7)";}}}>
-                  <a.I size={11}/>{a.l}
-                </button>
-              ))}
+          {!isPhone && (
+            <div style={{padding:"4px 11px",borderRadius:99,background:"rgba(255,255,255,.1)",
+                         fontSize:10.5,fontWeight:600,color:"rgba(255,255,255,.85)",whiteSpace:"nowrap"}}>
+              {primaryRole?.replace(/_/g," ")||"Staff"}
             </div>
-          ))}
+          )}
+
+          <button onClick={()=>nav("/profile")}
+            style={{background:"transparent",border:"none",cursor:"pointer",padding:1,borderRadius:"50%",flexShrink:0,
+                    display:"flex",boxShadow:"0 0 0 1.5px rgba(255,255,255,.3)",transition:"box-shadow .12s"}}
+            onMouseEnter={e=>(e.currentTarget.style.boxShadow="0 0 0 1.5px rgba(255,255,255,.6)")}
+            onMouseLeave={e=>(e.currentTarget.style.boxShadow="0 0 0 1.5px rgba(255,255,255,.3)")}>
+            {profile?.avatar_url
+              ? <img src={profile.avatar_url} alt="" style={{width:isPhone?24:27,height:isPhone?24:27,borderRadius:"50%",objectFit:"cover"}}/>
+              : <div style={{width:isPhone?24:27,height:isPhone?24:27,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <UserCircle size={isPhone?14:16} color="#fff"/>
+                </div>}
+          </button>
+
+          <button onClick={()=>{signOut();nav("/login");}} title="Sign out"
+            style={{padding:"6px",background:"transparent",border:"none",cursor:"pointer",
+                    color:"rgba(255,255,255,.75)",borderRadius:8,display:"flex",alignItems:"center",
+                    minWidth:32,minHeight:32,transition:"background .12s"}}
+            onMouseEnter={e=>(e.currentTarget.style.background="rgba(255,255,255,.14)")}
+            onMouseLeave={e=>(e.currentTarget.style.background="transparent")}>
+            <LogOut size={14}/>
+          </button>
         </div>
-      )}
+      </div>
 
       {/* ── D365 RIBBON (module tabs) — hidden on phone ───────────── */}
       <div className="ribbon-tabs"
            style={{background:"#fff",borderBottom:`1px solid ${T.border}`,display:"flex",
-                   alignItems:"stretch",padding:"0 8px",flexShrink:0,
-                   boxShadow:"0 1px 3px rgba(0,0,0,.06)",overflowX:"auto",
+                   alignItems:"stretch",padding:"0 10px",flexShrink:0,
+                   boxShadow:"0 1px 3px rgba(0,0,0,.05)",overflowX:"auto",
                    WebkitOverflowScrolling:"touch" as any}}>
         <button onClick={()=>{setActiveMod(null);nav("/dashboard");}}
-          style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",
+          style={{display:"flex",alignItems:"center",gap:6,padding:"11px 16px",
                   color:loc.pathname==="/dashboard"?T.primary:T.fgMuted,
-                  fontWeight:loc.pathname==="/dashboard"?600:400,fontSize:13,cursor:"pointer",
-                  background:loc.pathname==="/dashboard"?`${T.primary}0a`:"transparent",
-                  border:"none",borderRadius:loc.pathname==="/dashboard"?"8px 8px 0 0":0,
-                  borderBottom:`3px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,
+                  fontWeight:loc.pathname==="/dashboard"?700:500,fontSize:13,cursor:"pointer",
+                  background:loc.pathname==="/dashboard"?`${T.primary}0d`:"transparent",
+                  border:"none",borderRadius:"8px 8px 0 0",
+                  borderBottom:`2.5px solid ${loc.pathname==="/dashboard"?T.primary:"transparent"}`,
                   whiteSpace:"nowrap",transition:"all .18s cubic-bezier(.4,0,.2,1)",flexShrink:0}}
           onMouseEnter={e=>{(e.currentTarget as any).style.color=T.primary}}
           onMouseLeave={e=>{(e.currentTarget as any).style.color=loc.pathname==="/dashboard"?T.primary:T.fgMuted}}>
@@ -422,13 +393,13 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
                 const first = filterItems(mod.items as any[])[0];
                 if (first) nav(first.p);
               }}
-              style={{display:"flex",alignItems:"center",gap:5,padding:"10px 14px",
-                      color:isAct?mod.col:T.fgMuted,fontWeight:isAct?600:400,
-                      fontSize:isTablet?12:13,cursor:"pointer",background:isAct?`${mod.col}0a`:"transparent",
-                      border:"none",borderRadius:isAct?"8px 8px 0 0":0,borderBottom:`3px solid ${isAct?mod.col:"transparent"}`,
+              style={{display:"flex",alignItems:"center",gap:6,padding:"11px 16px",
+                      color:isAct?mod.col:T.fgMuted,fontWeight:isAct?700:500,
+                      fontSize:isTablet?12:13,cursor:"pointer",background:isAct?`${mod.col}0d`:"transparent",
+                      border:"none",borderRadius:"8px 8px 0 0",borderBottom:`2.5px solid ${isAct?mod.col:"transparent"}`,
                       whiteSpace:"nowrap",transition:"all .18s cubic-bezier(.4,0,.2,1)",flexShrink:0}}
-              onMouseEnter={e=>{(e.currentTarget as any).style.color=mod.col;(e.currentTarget as any).style.background=`${mod.col}0a`;}}
-              onMouseLeave={e=>{(e.currentTarget as any).style.color=isAct?mod.col:T.fgMuted;(e.currentTarget as any).style.background=isAct?`${mod.col}0a`:"transparent";}}>
+              onMouseEnter={e=>{(e.currentTarget as any).style.color=mod.col;(e.currentTarget as any).style.background=`${mod.col}0d`;}}
+              onMouseLeave={e=>{(e.currentTarget as any).style.color=isAct?mod.col:T.fgMuted;(e.currentTarget as any).style.background=isAct?`${mod.col}0d`:"transparent";}}>
               {mod.label}
               {(modCnt as number)>0&&<Badge n={modCnt as number} col={mod.col}/>}
               <ChevronDown size={11} style={{transform:isAct?"rotate(180deg)":"none",transition:"transform .2s"}}/>
@@ -440,12 +411,14 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
       {/* ── SUB-NAV COMMAND BAR — hidden on phone ─────────────────── */}
       {activeModDef && (
         <div className="sub-nav-bar"
-             style={{background:`${activeModDef.col}05`,borderBottom:`1px solid ${T.border}`,borderLeft:`3px solid ${activeModDef.col}`,
-                     boxShadow:"0 2px 6px rgba(0,0,0,.04)",
-                     display:"flex",alignItems:"center",padding:"4px 12px",gap:2,
+             style={{background:"#fff",borderBottom:`1px solid ${T.border}`,
+                     boxShadow:"0 2px 8px rgba(16,24,40,.05)",
+                     display:"flex",alignItems:"center",padding:"7px 14px",gap:6,
                      overflowX:"auto",flexShrink:0,WebkitOverflowScrolling:"touch" as any}}>
-          <span style={{fontSize:11,fontWeight:700,color:activeModDef.col,whiteSpace:"nowrap",
-                        marginRight:8,paddingRight:8,borderRight:`1px solid ${T.border}`,flexShrink:0}}>
+          <span style={{display:"flex",alignItems:"center",gap:5,fontSize:11,fontWeight:700,color:"#fff",
+                        background:activeModDef.col,padding:"3px 10px",borderRadius:99,
+                        whiteSpace:"nowrap",marginRight:4,flexShrink:0,letterSpacing:".01em"}}>
+            <span style={{width:5,height:5,borderRadius:"50%",background:"rgba(255,255,255,.85)",flexShrink:0}}/>
             {activeModDef.label}
           </span>
           {filterItems(activeModDef.items).map(item=>{
@@ -453,15 +426,15 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
             const n=cnt[(item as any).b as string]||0;
             return(
               <button key={item.p} onClick={()=>nav(item.p)}
-                style={{display:"flex",alignItems:"center",gap:5,padding:"5px 11px",
-                        borderRadius:T.r,
-                        background:isAct?`${activeModDef.col}14`:"transparent",
+                style={{display:"flex",alignItems:"center",gap:5,padding:"6px 13px",
+                        borderRadius:99,
+                        background:isAct?`${activeModDef.col}16`:"transparent",
+                        border:`1px solid ${isAct?`${activeModDef.col}33`:"transparent"}`,
                         color:isAct?activeModDef.col:T.fgMuted,
-                        fontSize:isTablet?11:12,fontWeight:isAct?600:400,
-                        cursor:"pointer",border:"none",whiteSpace:"nowrap",transition:"all .12s"}}
-                onMouseEnter={e=>{(e.currentTarget as any).style.background=`${activeModDef.col}10`;(e.currentTarget as any).style.color=activeModDef.col;}}
-                onMouseLeave={e=>{(e.currentTarget as any).style.background=isAct?`${activeModDef.col}14`:"transparent";(e.currentTarget as any).style.color=isAct?activeModDef.col:T.fgMuted;}}>
-                {isAct&&<span style={{width:5,height:5,borderRadius:"50%",background:activeModDef.col,flexShrink:0}}/>}
+                        fontSize:isTablet?11:12,fontWeight:isAct?700:500,
+                        cursor:"pointer",whiteSpace:"nowrap",transition:"all .12s"}}
+                onMouseEnter={e=>{ if(!isAct){(e.currentTarget as any).style.background=T.bg;(e.currentTarget as any).style.color=activeModDef.col;} }}
+                onMouseLeave={e=>{(e.currentTarget as any).style.background=isAct?`${activeModDef.col}16`:"transparent";(e.currentTarget as any).style.color=isAct?activeModDef.col:T.fgMuted;}}>
                 <item.I size={12}/>{item.l}{n>0&&<Badge n={n} col={activeModDef.col}/>}
               </button>
             );
@@ -564,29 +537,6 @@ export default function AppLayout({children}:{children:React.ReactNode}) {
                 )}
               </div>
             ))}
-
-            {/* Admin quick links in drawer */}
-            {(isAdmin||isDbAdmin) && (
-              <div style={{marginTop:"auto",borderTop:"1px solid rgba(255,255,255,.15)",padding:"8px 12px"}}>
-                <div style={{fontSize:9,fontWeight:800,color:"rgba(255,255,255,.45)",
-                             letterSpacing:".1em",marginBottom:4}}>ADMIN</div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-                  {[
-                    {l:"Panel",p:"/admin/panel"},{l:"Users",p:"/users"},
-                    {l:"Security",p:"/admin/users-ip-audit"},{l:"Settings",p:"/settings"},
-                    {l:"Database",p:"/admin/database"},{l:"Webmaster",p:"/webmaster"},
-                    {l:"Connectivity",p:"/admin/connectivity"},
-                  ].map(a=>(
-                    <button key={a.p} onClick={()=>{nav(a.p);setMobileNavOpen(false);}}
-                      style={{padding:"3px 8px",borderRadius:T.r,
-                              background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.2)",
-                              color:"#fff",fontSize:10,cursor:"pointer",whiteSpace:"nowrap"}}>
-                      {a.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </>
       )}

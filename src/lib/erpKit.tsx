@@ -37,7 +37,9 @@ export function SearchBox({ value, onChange, placeholder="Search…", width=240 
     <div style={{ position:"relative" }}>
       <SearchIcon size={14} style={{ position:"absolute", left:11, top:"50%", transform:"translateY(-50%)", color:T.fgDim, pointerEvents:"none" }}/>
       <input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
-        style={{ width, padding:"8px 12px 8px 32px", border:`1px solid ${T.border}`, borderRadius:T.r, fontSize:13, background:T.bg, color:T.fg, outline:"none", boxSizing:"border-box", fontFamily:font }}/>
+        style={{ width, padding:"8px 12px 8px 32px", border:`1px solid ${T.border}`, borderRadius:T.r, fontSize:13, background:T.bg, color:T.fg, outline:"none", boxSizing:"border-box", fontFamily:font, transition:"border-color .15s ease, box-shadow .15s ease" }}
+        onFocus={e=>{ e.currentTarget.style.borderColor=T.primary; e.currentTarget.style.boxShadow=`0 0 0 3px ${T.primary}1f`; }}
+        onBlur={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.boxShadow="none"; }}/>
       {value&&<button onClick={()=>onChange("")} style={{ position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:T.fgDim,fontSize:16,lineHeight:1 }}>×</button>}
     </div>
   );
@@ -48,7 +50,10 @@ export function BtnPrimary({ onClick, icon:Icon, children, disabled }: { onClick
   return (
     <button onClick={onClick} disabled={disabled}
       style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 15px", background:disabled?T.bg2:T.primary, border:"none",
-        borderRadius:T.r, cursor:disabled?"default":"pointer", color:disabled?T.fgDim:"#fff", fontSize:12.5, fontWeight:600, fontFamily:font }}>
+        borderRadius:T.r, cursor:disabled?"default":"pointer", color:disabled?T.fgDim:"#fff", fontSize:12.5, fontWeight:600, fontFamily:font,
+        boxShadow:disabled?"none":"0 1px 3px rgba(16,24,40,.15)", transition:"transform .1s ease, filter .1s ease" }}
+      onMouseEnter={e=>{ if(disabled) return; e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.filter="brightness(1.08)"; }}
+      onMouseLeave={e=>{ e.currentTarget.style.transform="none"; e.currentTarget.style.filter="none"; }}>
       {Icon&&<Icon size={13}/>}{children}
     </button>
   );
@@ -57,7 +62,9 @@ export function BtnGhost({ onClick, icon:Icon, children, loading }: { onClick?:(
   return (
     <button onClick={onClick}
       style={{ display:"flex", alignItems:"center", gap:6, padding:"8px 12px", background:T.card, border:`1px solid ${T.border}`,
-        borderRadius:T.r, cursor:"pointer", color:T.fgMuted, fontSize:12.5, fontWeight:600, fontFamily:font }}>
+        borderRadius:T.r, cursor:"pointer", color:T.fgMuted, fontSize:12.5, fontWeight:600, fontFamily:font, transition:"background .12s ease, border-color .12s ease" }}
+      onMouseEnter={e=>{ e.currentTarget.style.background=T.bg; e.currentTarget.style.borderColor=T.fgDim; }}
+      onMouseLeave={e=>{ e.currentTarget.style.background=T.card; e.currentTarget.style.borderColor=T.border; }}>
       {Icon&&<Icon size={13} style={loading?{ animation:"spin 1s linear infinite" }:{}}/>}{children}
     </button>
   );
@@ -69,7 +76,9 @@ export function KpiBand({ items, loading }: { items:KpiDef[]; loading?:boolean }
   return (
     <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(170px,1fr))", gap:12, marginBottom:20 }}>
       {items.map(b=>(
-        <div key={b.label} style={{ background:T.card, border:`1px solid ${b.hot?"#dc262655":T.border}`, borderRadius:T.rLg, padding:"14px 16px", boxShadow:T.shadow, position:"relative", display:"flex", alignItems:"center", gap:12 }}>
+        <div key={b.label} style={{ background:T.card, border:`1px solid ${b.hot?"#dc262655":T.border}`, borderRadius:T.rLg, padding:"14px 16px", boxShadow:T.shadow, position:"relative", display:"flex", alignItems:"center", gap:12, transition:"box-shadow .15s ease, transform .15s ease" }}
+          onMouseEnter={e=>{ e.currentTarget.style.boxShadow=`0 6px 18px ${b.color}28`; e.currentTarget.style.transform="translateY(-2px)"; }}
+          onMouseLeave={e=>{ e.currentTarget.style.boxShadow=T.shadow; e.currentTarget.style.transform="none"; }}>
           {b.hot&&<span style={{ position:"absolute",top:-8,right:12,background:"#dc2626",color:"#fff",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:99,letterSpacing:".02em" }}>ATTENTION</span>}
           <div style={{ width:38, height:38, borderRadius:T.rMd, background:`${b.color}14`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
             <b.icon size={18} color={b.color}/>
@@ -114,7 +123,9 @@ export function PillTabs<T extends string>({ tabs, active, onChange }:
         <button key={tab.id} onClick={()=>onChange(tab.id)}
           style={{ padding:"7px 14px", background:active===tab.id?T.card:"transparent", border:"none", borderRadius:T.rMd, cursor:"pointer",
             fontSize:12.5, fontWeight:active===tab.id?700:600, color:active===tab.id?T.fg:T.fgMuted, display:"flex",alignItems:"center",gap:7,
-            transition:"all .12s", boxShadow:active===tab.id?T.shadow:"none", fontFamily:font }}>
+            transition:"all .12s", boxShadow:active===tab.id?T.shadow:"none", fontFamily:font }}
+          onMouseEnter={e=>{ if(active!==tab.id) e.currentTarget.style.background="rgba(255,255,255,.5)"; }}
+          onMouseLeave={e=>{ if(active!==tab.id) e.currentTarget.style.background="transparent"; }}>
           {tab.icon&&<tab.icon size={13}/>}{tab.label}
           {typeof tab.count==="number"&&tab.count>0&&
             <span style={{ fontSize:10,fontWeight:800,padding:"1px 6px",borderRadius:99,background:active===tab.id?T.primary:T.bg2,color:active===tab.id?"#fff":T.fgMuted }}>{tab.count}</span>}

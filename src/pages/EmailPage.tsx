@@ -216,6 +216,34 @@ export default function EmailPage() {
   const sendCompose = async(testMode=false)=>{
     const to = testMode ? (profile?.email||user?.email||"") : compose.to.trim();
     if(!to||(!testMode&&!compose.subject.trim())||!user){ toast({title:"Fill recipient and subject",variant:"destructive"}); return; }
+
+    // Test Send hits real SMTP/API providers and costs money per call —
+    // exactly the kind of authenticated, repeatable, cost-bearing action
+    // check_rate_limit exists for. (rate-limiter edge function was a
+    // no-op stub before this; now it actually calls check_rate_limit.)
+    if (testMode) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const supaUrl = import.meta.env.VITE_SUPABASE_URL || "https://yvjfehnzbzjliizjvuhq.supabase.co";
+          const res = await fetch(`${supaUrl}/functions/v1/rate-limiter`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`,
+              "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "",
+            },
+            body: JSON.stringify({ action: "email_test_send" }),
+          });
+          const d = await res.json().catch(() => ({ allowed: true }));
+          if (d && d.allowed === false) {
+            toast({ title: "Slow down", description: "Too many test sends — try again in a few minutes.", variant: "destructive" });
+            return;
+          }
+        }
+      } catch { /* fail open — never let the limiter itself block sending */ }
+    }
+
     if(testMode) setTestSending(true); else setSending(true);
 
     try {

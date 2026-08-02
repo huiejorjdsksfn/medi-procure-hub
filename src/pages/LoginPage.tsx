@@ -8,6 +8,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { securityApi } from "@/lib/api/index";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Lock, User, RefreshCw, Shield } from "lucide-react";
 import { logDeviceSession, getGeoInfo } from "@/lib/deviceTracker";
@@ -61,6 +62,11 @@ export default function LoginPage() {
       toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
     } else {
       // Fire-and-forget: device session tracking only (never blocks navigation)
+      // securityApi.logSecurityEvent existed but was never called from
+      // anywhere in the app — needs an authenticated session to
+      // attribute the event (auditApi.log() no-ops without one), so
+      // this only covers successful logins, not failed attempts.
+      securityApi.logSecurityEvent("login_success", "info", { username }).catch(() => {});
       const userId = data?.user?.id;
       const userEmail = data?.user?.email || email;
       getGeoInfo().then(geo => logDeviceSession(userId, userEmail, geo)).catch(() => {});

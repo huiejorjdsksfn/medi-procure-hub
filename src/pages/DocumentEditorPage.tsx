@@ -610,6 +610,7 @@ export default function DocumentEditorPage() {
   const [newSignee, setNewSignee]       = useState({ name:"", role:"", email:"", due:"", note:"" });
   const [notifying, setNotifying]       = useState<Set<string>>(new Set());
   const [showBulkEmail, setShowBulkEmail] = useState(false);
+  const [wpMenuOpen, setWpMenuOpen] = useState(false);
   const [bulkRecipients, setBulkRecipients] = useState("");
   const [bulkSubject, setBulkSubject]   = useState("");
   const [bulkMessage, setBulkMessage]   = useState("");
@@ -843,6 +844,73 @@ ${sigBlock}
     }
     addFooter(doc, 1, doc.getNumberOfPages());
     doc.save(`${docName.replace(/[^a-zA-Z0-9]/g,"-")}.pdf`);
+  };
+
+  /* ── WordPress-ready HTML export ────────────────────────────────
+   * Unlike exportPDF() (which flattens to plain text — no bold, no
+   * tables, no colors), these use editorRef's actual innerHTML, so
+   * formatting survives. WordPress doesn't have a generic "import an
+   * .html file" feature — the two things that actually work are:
+   *  1. Download the .html file and paste its content into a Custom
+   *     HTML block, or hand it to a developer/HTML-import plugin.
+   *  2. Copy as rich HTML and paste directly into the block or
+   *     classic editor — WordPress's paste-handler parses real HTML
+   *     clipboard data into blocks/formatting automatically, which
+   *     plain-text paste does not.
+   */
+  const buildStandaloneHTML = () => {
+    const html = editorRef.current?.innerHTML || "";
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${docName.replace(/</g,"&lt;")}</title>
+<style>
+  body{font-family:Georgia,'Times New Roman',serif;max-width:820px;margin:40px auto;padding:0 20px;line-height:1.6;color:#1f2937;}
+  table{border-collapse:collapse;width:100%;margin:16px 0;}
+  td,th{border:1px solid #ddd;padding:8px;}
+  img{max-width:100%;height:auto;}
+  h1,h2,h3{font-family:Georgia,serif;}
+</style>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+  };
+
+  const exportHTML = () => {
+    const blob = new Blob([buildStandaloneHTML()], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${docName.replace(/[^a-zA-Z0-9]/g,"-")}.html`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    setWpMenuOpen(false);
+    toast({ title: "✓ HTML downloaded", description: "Paste into a Custom HTML block in WordPress, or hand it to whoever manages the site." });
+  };
+
+  const copyRichHTML = async () => {
+    const html = editorRef.current?.innerHTML || "";
+    const text = editorRef.current?.innerText || "";
+    setWpMenuOpen(false);
+    try {
+      if (typeof ClipboardItem !== "undefined") {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([text], { type: "text/plain" }),
+          }),
+        ]);
+        toast({ title: "✓ Copied with formatting", description: "Paste straight into WordPress's block or classic editor — bold, tables, and headings come with it." });
+      } else {
+        await navigator.clipboard.writeText(html);
+        toast({ title: "✓ HTML copied", description: "Paste into a Custom HTML block in WordPress." });
+      }
+    } catch (e: any) {
+      toast({ title: "Copy failed", description: e?.message || "Your browser blocked clipboard access.", variant:"destructive" });
+    }
   };
 
   /* ── load report ────────────────────────────────────────────── */
@@ -1157,6 +1225,31 @@ ${sigBlock}
           )}
           <button onClick={printDoc} style={{ ...S.btn(false), borderRadius:8, background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", padding:"6px 12px" }}>🖨 Print</button>
           <button onClick={exportPDF} style={{ ...S.btn(false), borderRadius:8, background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", padding:"6px 12px" }}>📤 PDF</button>
+          <div style={{ position:"relative" }}>
+            <button onClick={()=>setWpMenuOpen(o=>!o)} style={{ ...S.btn(false), borderRadius:8, background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", padding:"6px 12px", display:"flex", alignItems:"center", gap:5 }}>
+              🌐 WordPress ▾
+            </button>
+            {wpMenuOpen && (
+              <>
+                <div onClick={()=>setWpMenuOpen(false)} style={{ position:"fixed", inset:0, zIndex:299 }}/>
+                <div style={{ position:"absolute", top:"calc(100% + 6px)", right:0, zIndex:300, background:"#fff", border:`1px solid ${T.border}`, borderRadius:10, boxShadow:"0 10px 28px rgba(0,0,0,.18)", minWidth:240, overflow:"hidden" }}>
+                  <div style={{ padding:"9px 14px", fontSize:10, fontWeight:700, color:T.fgDim, textTransform:"uppercase", letterSpacing:".04em", borderBottom:`1px solid ${T.border}`, background:T.bg }}>
+                    Export for WordPress
+                  </div>
+                  <button onClick={copyRichHTML} style={{ width:"100%", textAlign:"left", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", fontSize:12.5, color:T.fg, display:"flex", flexDirection:"column", gap:2 }}
+                    onMouseEnter={e=>((e.currentTarget as HTMLElement).style.background=T.bg)} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.background="transparent")}>
+                    <span style={{ fontWeight:700 }}>📋 Copy with formatting</span>
+                    <span style={{ fontSize:10.5, color:T.fgMuted }}>Paste straight into the block/classic editor</span>
+                  </button>
+                  <button onClick={exportHTML} style={{ width:"100%", textAlign:"left", padding:"10px 14px", background:"none", border:"none", cursor:"pointer", fontSize:12.5, color:T.fg, display:"flex", flexDirection:"column", gap:2 }}
+                    onMouseEnter={e=>((e.currentTarget as HTMLElement).style.background=T.bg)} onMouseLeave={e=>((e.currentTarget as HTMLElement).style.background="transparent")}>
+                    <span style={{ fontWeight:700 }}>⬇ Download .html file</span>
+                    <span style={{ fontSize:10.5, color:T.fgMuted }}>For a Custom HTML block or your site admin</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           <button onClick={()=>setShowBulkEmail(true)} style={{ ...S.btn(false), borderRadius:8, background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", padding:"6px 12px" }}>📧 Email</button>
           <button onClick={()=>navigate("/documents")} style={{ ...S.btn(false), borderRadius:8, background:"rgba(255,255,255,0.14)", color:"#fff", border:"1px solid rgba(255,255,255,0.25)", padding:"6px 12px" }}>✕ Close</button>
         </div>
