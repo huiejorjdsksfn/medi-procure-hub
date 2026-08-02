@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { useChartOfAccounts, useRequisitions, usePurchaseOrders } from "@/hooks/useDropdownData";
 import { netEngine } from "@/lib/networkEngine";
 import { pageCache } from "@/lib/pageCache";
+import { T } from "@/lib/theme";
 
 const db = supabase as any;
 
@@ -21,30 +22,35 @@ const _FDESK  = _FDESKBG
   ? `url("${_FDESKBG}") center/cover no-repeat`
   : "linear-gradient(160deg,#245ebd 0%,#1a4595 40%,#0f317a 100%)";
 
+/**
+ * Same theme-sync fix as FinancialDashboardPage.tsx / AccountantWorkspacePage.tsx
+ * / erpTheme.ts / Document Studio: was a fully static Windows-XP palette,
+ * completely disconnected from the GUI Editor. Now derives from T.
+ */
 const XP = {
-  titleBar:    "linear-gradient(180deg,#4490d9 0%,#2461bf 8%,#245ebd 92%,#1a50aa 100%)",
-  titleBarInactive: "linear-gradient(180deg,#9db8d2 0%,#6d93b5 8%,#6e90b0 92%,#5d80a0 100%)",
-  windowBg:    "#ece9d8",
+  get titleBar()    { return `linear-gradient(180deg, ${T.primary}, ${T.primaryDark})`; },
+  get titleBarInactive() { return `linear-gradient(180deg, ${T.primary}99, ${T.primaryDark}99)`; },
+  get windowBg()    { return T.bg; },
   desktop:     _FDESK,
-  taskbar:     "linear-gradient(180deg,#3a77cc 0%,#2256b5 4%,#2357b8 96%,#1a4ea6 100%)",
-  menuBg:      "#ece9d8",
-  menuBlue:    "linear-gradient(90deg,#1a3fa0 0%,#2255c0 100%)",
-  btnFace:     "linear-gradient(180deg,#f5f4ea 0%,#dbd9c9 100%)",
-  btnHover:    "linear-gradient(180deg,#fdfcea 0%,#edead0 100%)",
-  btnActive:   "linear-gradient(180deg,#c8c4b0 0%,#dbd9c9 100%)",
-  btnPrimary:  "linear-gradient(180deg,#dce9fc 0%,#aac4ee 100%)",
-  btnBorder:   "#a29d7f",
-  gridHdr:     "linear-gradient(180deg,#dbd9c9,#cbc9b5)",
-  gridBorder:  "#c0bca8",
-  gridRow:     "#ffffff",
-  gridAlt:     "#f5f4ea",
-  gridSel:     "#316ac5",
+  get taskbar()     { return `linear-gradient(180deg, ${T.primaryDark}, #0b0f2e)`; },
+  get menuBg()      { return T.card; },
+  get menuBlue()    { return `linear-gradient(90deg, ${T.primaryDark}, ${T.primary})`; },
+  get btnFace()     { return T.card; },
+  get btnHover()    { return T.bg; },
+  get btnActive()   { return T.bg2; },
+  get btnPrimary()  { return T.primaryBg; },
+  get btnBorder()   { return T.border; },
+  get gridHdr()     { return T.bg2; },
+  get gridBorder()  { return T.border; },
+  get gridRow()     { return T.card; },
+  get gridAlt()     { return T.bg; },
+  get gridSel()     { return T.primary; },
   gridSelTxt:  "#ffffff",
-  gridHov:     "#dce9ff",
-  statusBg:    "#ece9d8",
-  inset:       "inset 1px 1px 3px rgba(0,0,0,.15)",
-  shadow:      "4px 4px 16px rgba(0,0,0,.55)",
-  font:        "'Tahoma','Segoe UI','Arial',sans-serif",
+  get gridHov()     { return T.primaryBg; },
+  get statusBg()    { return T.bg2; },
+  inset:       "inset 1px 1px 3px rgba(8,10,35,.1)",
+  shadow:      "0 8px 28px rgba(8,10,35,.18)",
+  font:        "'Inter','Segoe UI','Arial',sans-serif",
   fs:          11,
 };
 

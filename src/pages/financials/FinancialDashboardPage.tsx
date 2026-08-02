@@ -3,50 +3,63 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { usePurchaseOrders } from "@/hooks/useDropdownData";
+import { T } from "@/lib/theme";
 import { printElement } from "@/lib/quickPrint";
 
 /* ═══════════════════════════════════════════════════════════════
    Windows XP Luna Blue design system
    ═══════════════════════════════════════════════════════════════ */
+/**
+ * Was a fully static, hardcoded Windows-XP "Luna" palette — same theme-
+ * sync bug found in erpTheme.ts and Document Studio: completely
+ * disconnected from the GUI Editor. Every colour is now a getter
+ * deriving from T, so this page (title bars, buttons, grids, sidebar,
+ * status bar — all ~50 call sites) stays in sync with the rest of the
+ * system's palette instead of being permanently stuck on 2001 Windows
+ * blue regardless of what an admin sets in the theme editor.
+ */
 const XP = {
   /* Titlebar */
-  titleBar:     "linear-gradient(180deg,#4a90e2 0%,#2464c3 8%,#245ebd 92%,#1a4fa8 100%)",
-  titleShadow:  "0 2px 8px rgba(0,0,80,0.5)",
+  get titleBar()    { return `linear-gradient(180deg, ${T.primary}, ${T.primaryDark})`; },
+  titleShadow:  "0 2px 8px rgba(8,10,35,.3)",
   /* Window */
-  winBg:        "#ece9d8",
-  winBorder:    "2px solid #0054e3",
-  winShadow:    "4px 4px 14px rgba(0,0,0,0.45)",
+  get winBg()       { return T.bg; },
+  get winBorder()   { return `1px solid ${T.border}`; },
+  winShadow:    "0 8px 28px rgba(8,10,35,.18)",
   /* Buttons */
-  btnFace:      "linear-gradient(180deg,#f5f4ea,#dbd9c9)",
-  btnHover:     "linear-gradient(180deg,#fdf9e7,#ede9c9)",
-  btnActive:    "linear-gradient(180deg,#c8c4b0,#dbd9c9)",
-  btnBorder:    "#a29d7f",
-  btnGreen:     "linear-gradient(180deg,#5db85c,#3ea03d)",
-  btnBlue:      "linear-gradient(180deg,#5b9ae0,#2e6fca)",
-  btnRed:       "linear-gradient(180deg,#e05b5b,#c02e2e)",
+  get btnFace()     { return T.card; },
+  get btnHover()    { return T.bg; },
+  get btnActive()   { return T.bg2; },
+  get btnBorder()   { return T.border; },
+  get btnGreen()    { return `linear-gradient(180deg, ${T.success}, ${T.success}dd)`; },
+  get btnBlue()     { return `linear-gradient(180deg, ${T.primary}, ${T.primaryDark})`; },
+  get btnRed()      { return `linear-gradient(180deg, ${T.error}, ${T.error}dd)`; },
   /* Tab strip */
-  tabActive:    "#ece9d8",
-  tabInactive:  "linear-gradient(180deg,#d0cdc0,#bab7a8)",
-  tabBorder:    "#a29d7f",
+  get tabActive()   { return T.card; },
+  get tabInactive() { return T.bg2; },
+  get tabBorder()   { return T.border; },
   /* Grid */
-  gridHeader:   "linear-gradient(180deg,#dbd9c9,#cbc9b5)",
-  gridHover:    "#dce9ff",
-  gridSelect:   "#316ac5",
+  get gridHeader()  { return T.bg2; },
+  get gridHover()   { return T.primaryBg; },
+  get gridSelect()  { return T.primary; },
   gridSelectTxt:"#ffffff",
-  gridBorder:   "#c0bca8",
-  gridRow:      "#ffffff",
-  gridRowAlt:   "#f5f4ea",
-  gridHeight:   22,
+  get gridBorder()  { return T.border; },
+  get gridRow()     { return T.card; },
+  get gridRowAlt()  { return T.bg; },
+  gridHeight:   26,
   /* Sidebar */
-  sidebarBg:    "linear-gradient(180deg,#6fa3d9 0%,#4a7fc4 100%)",
+  get sidebarBg()   { return `linear-gradient(180deg, ${T.primary}, ${T.primaryDark})`; },
   /* Status bar */
-  statusBg:     "#ece9d8",
-  statusBorder: "#a29d7f",
-  /* Sunken / raised border tricks */
-  raised:  "inset -1px -1px #404040, inset 1px 1px #fff, inset -2px -2px #808080, inset 2px 2px #dfdfdf",
-  sunken:  "inset 1px 1px #404040, inset -1px -1px #fff, inset 2px 2px #808080, inset -2px -2px #dfdfdf",
-  /* Font */
-  font: "'Tahoma','Segoe UI','Arial',sans-serif",
+  get statusBg()    { return T.bg2; },
+  get statusBorder(){ return T.border; },
+  /* Sunken / raised border tricks — kept subtle, no longer needed as
+     hard as the original Win32 bevel look now that everything else has
+     softened, but left available for anything still using them. */
+  raised:  `inset -1px -1px ${T.border}, inset 1px 1px #fff`,
+  sunken:  `inset 1px 1px ${T.border}, inset -1px -1px #fff`,
+  /* Font — modernised from the Tahoma/Win32 stack used everywhere else
+     this session. */
+  font: "'Inter','Segoe UI','Arial',sans-serif",
 };
 
 /* ── formatters ──────────────────────────────────────────────────────── */

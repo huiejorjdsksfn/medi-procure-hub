@@ -12,37 +12,43 @@ import { printElement } from "@/lib/quickPrint";
 import { useVoteHeads } from "@/hooks/useVoteHeads";
 import { useChartOfAccounts, usePurchaseOrders } from "@/hooks/useDropdownData";
 import VoteHeadManagerModal from "@/components/VoteHeadManagerModal";
+import { T } from "@/lib/theme";
 
 // ── XP Luna palette ──────────────────────────────────────────────────────────
+/**
+ * Same theme-sync fix as FinancialDashboardPage.tsx / erpTheme.ts /
+ * Document Studio: was a fully static Windows-XP palette, completely
+ * disconnected from the GUI Editor. Now derives from T.
+ */
 const XP = {
-  titleActive:   "linear-gradient(180deg,#4a90e2 0%,#2464c3 8%,#245ebd 92%,#1a4fa8 100%)",
-  titleInactive: "linear-gradient(180deg,#9db5d5 0%,#7a9cc3 100%)",
-  windowBg:      "#ece9d8",
-  windowBorder:  "#0054e3",
-  windowShadow:  "4px 4px 14px rgba(0,0,0,0.5)",
-  contentBg:     "#ffffff",
-  taskbar:       "linear-gradient(180deg,#3169c9 0%,#2255b7 4%,#245ebd 96%,#1a50a8 100%)",
-  taskbarBorder: "#1a409a",
-  startBtn:      "linear-gradient(180deg,#5cb85c,#3d9b3d)",
-  desktopBg:     "linear-gradient(160deg,#235bab 0%,#1a4a95 40%,#0e3880 100%)",
-  sidebarBg:     "linear-gradient(180deg,#6f9fcf 0%,#4a7fc4 100%)",
-  menuBg:        "#ece9d8",
-  menuHover:     "#316ac5",
+  get titleActive()   { return `linear-gradient(180deg, ${T.primary}, ${T.primaryDark})`; },
+  get titleInactive() { return `linear-gradient(180deg, ${T.primary}99, ${T.primaryDark}99)`; },
+  get windowBg()       { return T.bg; },
+  get windowBorder()   { return T.border; },
+  windowShadow:  "0 8px 28px rgba(8,10,35,.18)",
+  get contentBg()      { return T.card; },
+  get taskbar()        { return `linear-gradient(180deg, ${T.primaryDark}, #0b0f2e)`; },
+  get taskbarBorder()  { return T.primaryDark; },
+  get startBtn()       { return `linear-gradient(180deg, ${T.success}, ${T.success}dd)`; },
+  get desktopBg()      { return `linear-gradient(160deg, ${T.primaryDark} 0%, #1a2452 60%, #0b1030 100%)`; },
+  get sidebarBg()      { return `linear-gradient(180deg, ${T.primary}, ${T.primaryDark})`; },
+  get menuBg()         { return T.card; },
+  get menuHover()      { return T.primary; },
   menuHoverText: "#ffffff",
-  btnFace:       "linear-gradient(180deg,#f5f4ea,#dbd9c9)",
-  btnBorder:     "#a29d7f",
-  btnHover:      "linear-gradient(180deg,#fdf9e7,#ede9c9)",
-  btnActive:     "linear-gradient(180deg,#c8c4b0,#dbd9c9)",
-  gridHeader:    "linear-gradient(180deg,#dbd9c9,#cbc9b5)",
-  gridHover:     "#dce9ff",
-  gridSelect:    "#316ac5",
+  get btnFace()        { return T.card; },
+  get btnBorder()      { return T.border; },
+  get btnHover()       { return T.bg; },
+  get btnActive()      { return T.bg2; },
+  get gridHeader()     { return T.bg2; },
+  get gridHover()      { return T.primaryBg; },
+  get gridSelect()     { return T.primary; },
   gridSelectTxt: "#ffffff",
-  gridBorder:    "#c0bca8",
-  gridRow:       "#ffffff",
-  gridRowAlt:    "#f5f4ea",
-  statusBg:      "#ece9d8",
-  statusBorder:  "#a29d7f",
-  font:          "'Tahoma','Segoe UI','Arial',sans-serif",
+  get gridBorder()     { return T.border; },
+  get gridRow()        { return T.card; },
+  get gridRowAlt()     { return T.bg; },
+  get statusBg()       { return T.bg2; },
+  get statusBorder()   { return T.border; },
+  font:          "'Inter','Segoe UI','Arial',sans-serif",
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
