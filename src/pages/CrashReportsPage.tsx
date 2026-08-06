@@ -24,7 +24,12 @@ interface CrashRow {
   component_stack: string | null;
   user_agent: string | null;
   resolved: boolean;
+  severity: "critical" | "high" | "medium" | "low" | null;
+  category: string | null;
+  ai_summary: string | null;
 }
+
+const SEVERITY_COLOR: Record<string,string> = { critical:"#dc2626", high:"#ea580c", medium:"#d97706", low:"#65a30d" };
 
 const S = {
   wrap:  { padding: 20, background: "#f8fafc", minHeight: "100vh", fontFamily: "'Inter',system-ui,sans-serif" } as const,
@@ -122,6 +127,11 @@ export default function CrashReportsPage() {
           <div key={r.id} style={S.card} onMouseEnter={cardHover} onMouseLeave={cardLeave}>
             <div style={S.meta}>
               <span style={S.pill(r.resolved)}>{r.resolved ? "resolved" : "open"}</span>
+              {r.severity && (
+                <span style={{ display:"inline-block", padding:"2px 8px", borderRadius:999, fontSize:10, fontWeight:700, background:(SEVERITY_COLOR[r.severity]||"#64748b")+"18", color:SEVERITY_COLOR[r.severity]||"#64748b", border:`1px solid ${SEVERITY_COLOR[r.severity]||"#64748b"}44` }}>
+                  {r.severity.toUpperCase()}{r.category ? ` · ${r.category}` : ""}
+                </span>
+              )}
               <span>🕒 {new Date(r.created_at).toLocaleString("en-KE")}</span>
               {r.page_name && <span>📄 {r.page_name}</span>}
               {r.path && <span>🔗 {r.path}</span>}
@@ -131,6 +141,11 @@ export default function CrashReportsPage() {
               <AlertTriangle size={14} style={{ color: "#dc2626", verticalAlign: "middle", marginRight: 6 }}/>
               {r.message}
             </div>
+            {r.ai_summary && (
+              <div style={{ fontSize:12, color:"#4338ca", background:"#eef2ff", border:"1px solid #c7d2fe", borderRadius:6, padding:"6px 10px", marginBottom:8, display:"flex", gap:6, alignItems:"flex-start" }}>
+                <span>✨</span><span>{r.ai_summary}</span>
+              </div>
+            )}
             {(r.stack || r.component_stack) && (
               <div style={S.stack}>
                 {r.stack}

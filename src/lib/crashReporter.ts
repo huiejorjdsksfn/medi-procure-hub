@@ -58,7 +58,10 @@ export async function reportCrash(p: CrashPayload): Promise<void> {
     user_email = data?.user?.email ?? null;
   } catch { /* signed out */ }
 
+  const crash_id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `${now}-${Math.random().toString(36).slice(2)}`;
+
   const row = {
+    id: crash_id,
     user_id,
     user_email,
     path,
@@ -74,7 +77,16 @@ export async function reportCrash(p: CrashPayload): Promise<void> {
   pushLocal({ ts: now, ...row });
 
   try {
-    await (supabase as any).from("crash_reports").insert(row);
+    // No .select() here — the SELECT policy on crash_reports is admin-only,
+    // so trying to read the row back would throw for the regular staff who
+    // actually hit crashes. We already know the id since we generated it.
+    const { error } = await (supabase as any).from("crash_reports").insert(row);
+    if (error) throw error;
+    // AI triage is enrichment, not part of crash capture — fire and forget,
+    // never let it slow down or fail the report itself.
+    supabase.functions.invoke("crash-triage", {
+      body: { crash_id, message: row.message, stack: row.stack, path: row.path },
+    }).catch(() => { /* best-effort */ });
   } catch (e) {
     // Silently swallow — the local log is our fallback.
     console.warn("[crashReporter] Supabase insert failed", e);
