@@ -87,6 +87,8 @@ export default function WebmasterPage() {
 
   const [tab, setTab] = useState<WMTab>("overview");
   const [kpis, setKpis] = useState<any>({});
+  const [health, setHealth] = useState<any>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
   const [liveMon, setLiveMon] = useState<any|null>(null);
   const [liveMonHistory, setLiveMonHistory] = useState<{ time:string; active:number; cacheHit:number }[]>([]);
   // Merged from DeploymentsPage (company/facility onboarding tracker)
@@ -209,6 +211,20 @@ export default function WebmasterPage() {
   }, []);
 
   useEffect(() => { loadKpis(); }, [loadKpis]);
+
+  const runHealthCheck = useCallback(async () => {
+    setHealthLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("system-health-check", { body: {} });
+      if (error) throw error;
+      setHealth(data);
+    } catch (e: any) {
+      toast({ title: "Health check failed", description: e.message, variant: "destructive" });
+    }
+    setHealthLoading(false);
+  }, []);
+
+  useEffect(() => { if (tab === "system") runHealthCheck(); }, [tab, runHealthCheck]);
 
   // - Compact live server monitor (same real pg_stat_* RPC as the full
   //   Live Monitor tab on /admin/database) — only polls while on Overview.
@@ -772,16 +788,47 @@ export default function WebmasterPage() {
           </div>
 
           <div>
-            {/* System info */}
+            {/* System info — live, server-checked (was a hardcoded list claiming "PostgreSQL 15") */}
             <div style={{ ...card, marginBottom:14 }}>
-              <div style={{ fontWeight:800, color:T.fg, fontSize:14, marginBottom:12 }}>System Information</div>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                <div style={{ fontWeight:800, color:T.fg, fontSize:14 }}>System Health</div>
+                <button onClick={runHealthCheck} disabled={healthLoading} style={{ background:"none", border:"none", cursor:"pointer", color:T.primary, display:"flex", alignItems:"center", gap:4, fontSize:11, fontWeight:700 }}>
+                  <RefreshCw size={12} style={{ animation:healthLoading?"spin 1s linear infinite":"none" }}/> {healthLoading?"Checking…":"Re-check"}
+                </button>
+              </div>
+              {!health ? (
+                <div style={{ fontSize:12, color:T.fgMuted, padding:"8px 0" }}>Checking system health…</div>
+              ) : (
+                <>
+                  <div style={{ fontSize:11, color:T.fgMuted, marginBottom:10 }}>
+                    {health.healthyCount}/{health.totalCount} healthy · checked {new Date(health.checkedAt).toLocaleTimeString()}
+                  </div>
+                  {[
+                    ["Database", health.results.database],
+                    ["Email (SMTP)", health.results.smtp],
+                    ["SMS (Twilio)", health.results.sms],
+                    ["Storage", health.results.storage],
+                    ["AI (Claude)", health.results.ai],
+                  ].map(([label, r]: any) => (
+                    <div key={label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderBottom:`1px solid ${T.border}22`, fontSize:12 }}>
+                      <span style={{ color:T.fgDim, display:"flex", alignItems:"center", gap:6 }}>
+                        <span style={{ width:7, height:7, borderRadius:"50%", background:r.ok?T.success:T.error, flexShrink:0 }}/>
+                        {label}
+                      </span>
+                      <span style={{ color:T.fg, fontSize:11, textAlign:"right" }}>{r.detail}{r.verified==="config-only" && <span style={{ color:T.fgDim }}> (config only)</span>}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+
+            {/* Static build/repo info */}
+            <div style={{ ...card, marginBottom:14 }}>
+              <div style={{ fontWeight:800, color:T.fg, fontSize:14, marginBottom:12 }}>Build Information</div>
               {[
-                ["Version",       "6.0.0"],
                 ["Framework",     "React 18 + Vite 5"],
-                ["Database",      "Supabase (PostgreSQL 15)"],
                 ["Auth",          "Supabase Auth (PKCE)"],
                 ["Realtime",      "Supabase Realtime WS"],
-                ["SMS",           "Twilio +16812972643"],
                 ["Deploy",        "EdgeOne CDN"],
                 ["Repo",          "github.com/huiejorjdsksfn/medi-procure-hub"],
               ].map(([k,v]) => (
